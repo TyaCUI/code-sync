@@ -1,4 +1,10 @@
 import os
 
 
-print(Hello World!)
+# hello world he
+
+
+print("it's ok")
+import sys
+print('Hello World!')
+print()

@@ -18,7 +18,7 @@ expressObj.use(express.json())
 expressObj.use(express.urlencoded({ extended: true }))
 
 const port = 3000
-const codeBasePath = "../example-code-server/"
+// const codeBasePath = "../example-code-server/"
 
 const server = expressObj.listen(port, () => {
   console.log(`The code sync server is listening on port ${port}...`)
@@ -49,11 +49,12 @@ expressObj.get('/port', (req, res) => { res.end(`${port}`) })
 expressObj.get('/rootDocId', (req, res) => { res.end(`${rootDocId}`) })
 
 expressObj.post('/loadfile', (req, res) => {
-  var filePath = req.body['filePath']
+  const filePath = req.body['filePath']
+  const rootPath = req.body['rootPath']
 
   var fileDocId = rootDocHandler.docSync()[`${filePath}`]
   if ( fileDocId === undefined ) {
-    docHandler = repo.create({"text": fs.readFileSync(codeBasePath + filePath, 'utf8')})
+    docHandler = repo.create({"text": fs.readFileSync(`${rootPath}/${filePath}`, 'utf8')})
     fileDocId = docHandler.documentId
     rootDocHandler.change((d) => (d[`${filePath}`] = fileDocId))
   } else {
@@ -61,14 +62,13 @@ expressObj.post('/loadfile', (req, res) => {
   }
 
   docHandler.on("change", ({ doc }) => {
-    fs.writeFile(codeBasePath + filePath, doc.text, function(err) {
+    fs.writeFile(`${rootPath}/${filePath}`, doc.text, function(err) {
       if(err) {
           return console.log(err);
       }
       console.log(`${filePath} was saved!`);
     })
-    // console.log("new text is ", doc.text);
-    // console.log("whole doc is ", doc.docSync());
+    
   });
 
   res.end(`${fileDocId}`) 
@@ -80,22 +80,30 @@ expressObj.get('/getdoc', (req, res) => {
 
 expressObj.post('/updateFile', (req, res) => {
   const filePath = req.body['filePath']
+  const rootPath = req.body['rootPath']
   var fileDocId = rootDocHandler.docSync()[`${filePath}`]
+  if ( fileDocId === undefined ){
+    docHandler = repo.create({"text": fs.readFileSync(`${rootPath}/${filePath}`, 'utf8')})
+    fileDocId = docHandler.documentId
+    rootDocHandler.change((d) => (d[`${filePath}`] = fileDocId))
+  } else {
+    docHandler = repo.find(fileDocId)
+  }
 
-  var curDocHandler = repo.find(fileDocId)
+  // var curDocHandler = repo.find(`${fileDocId}`)
 
-  var content = req.body['content']
+  const content = req.body['content']
 
-  curDocHandler.change((d) => Automerge.updateText(d, ["text"], content))
+  docHandler.change((d) => Automerge.updateText(d, ["text"], content))
 
-  var updatedContent = curDocHandler.docSync().text
+  var updatedContent = docHandler.docSync().text
 
-  fs.writeFile(codeBasePath + filePath, updatedContent, function(err) {
-    if(err) {
-        return console.log(err);
-    }
-    console.log(`${filePath} was saved!`);
-  })
+  // fs.writeFile(`${rootPath}/${filePath}`, updatedContent, function(err) {
+  //   if(err) {
+  //       return console.log(err);
+  //   }
+  //   console.log(`${filePath} was saved!`);
+  // })
 
   res.end(`${updatedContent}`)
 })
