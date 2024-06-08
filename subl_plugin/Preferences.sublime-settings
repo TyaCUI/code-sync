@@ -1,0 +1,7 @@
+{
+	"code_sync_on": false,
+	"save_changes": false,
+	"port": 3000,
+	// absolute path to extra python packages included in env
+  	"packages_path": "dependencies.json"
+}
